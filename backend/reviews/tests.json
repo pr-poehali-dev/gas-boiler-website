@@ -1,0 +1,39 @@
+{
+  "tests": [
+    {
+      "name": "Get reviews for boiler",
+      "method": "GET",
+      "path": "/?boiler_id=1",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "reviews": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Add new review",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "boiler_id": 1,
+        "name": "Test User",
+        "rating": 5,
+        "comment": "Great boiler!"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "message": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "CORS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    }
+  ]
+}

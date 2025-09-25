@@ -1,0 +1,52 @@
+{
+  "tests": [
+    {
+      "name": "Create order",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "John Doe",
+        "phone": "+7 (999) 123-45-67",
+        "email": "john@test.com",
+        "address": "Moscow, Test Street 1",
+        "items": [
+          {"id": 1, "name": "Test Boiler", "price": 125000}
+        ],
+        "user_location": "55.7558,37.6176"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "message": "string",
+        "order_id": "number"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create contact request",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "type": "contact",
+        "name": "Jane Doe",
+        "phone": "+7 (999) 987-65-43",
+        "email": "jane@test.com",
+        "message": "Need consultation about boilers"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "message": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "CORS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    }
+  ]
+}

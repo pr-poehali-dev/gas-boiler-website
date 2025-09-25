@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,12 @@ const Index = () => {
   const [userLocation, setUserLocation] = useState<string>('');
   const [calculatedPower, setCalculatedPower] = useState<number | null>(null);
   const [calcInputs, setCalcInputs] = useState({ area: '', height: '', insulation: '' });
-  const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, text: '' });
+  const [reviewForm, setReviewForm] = useState({ name: '', email: '', rating: 5, text: '' });
   const [orderForm, setOrderForm] = useState({ name: '', phone: '', email: '', address: '' });
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', email: '', message: '' });
+  const [boilerReviews, setBoilerReviews] = useState<{[key: number]: any[]}>({});
+  const [isLoadingReviews, setIsLoadingReviews] = useState<{[key: number]: boolean}>({});
+  const [showMap, setShowMap] = useState(false);
 
   const boilers = [
     {
@@ -37,11 +41,7 @@ const Index = () => {
         maxPressure: "3 бар",
         gasConsumption: "2.75 м³/ч",
         warranty: "5 лет"
-      },
-      reviews: [
-        { name: "Иван П.", rating: 5, text: "Отличный котёл, экономичный и надёжный!" },
-        { name: "Мария С.", rating: 5, text: "Работает тихо, простое управление." }
-      ]
+      }
     },
     {
       id: 2,
@@ -58,11 +58,7 @@ const Index = () => {
         maxPressure: "3 бар",
         gasConsumption: "3.4 м³/ч",
         warranty: "7 лет"
-      },
-      reviews: [
-        { name: "Алексей К.", rating: 4, text: "Хороший выбор для дома 150м²." },
-        { name: "Елена В.", rating: 5, text: "Быстрый нагрев, удобное управление." }
-      ]
+      }
     },
     {
       id: 3,
@@ -79,11 +75,7 @@ const Index = () => {
         maxPressure: "6 бар",
         gasConsumption: "4.1 м³/ч",
         warranty: "8 лет"
-      },
-      reviews: [
-        { name: "Дмитрий Л.", rating: 5, text: "Идеален для большого дома." },
-        { name: "Ольга Н.", rating: 4, text: "Качественная сборка, работает стабильно." }
-      ]
+      }
     },
     {
       id: 4,
@@ -100,11 +92,7 @@ const Index = () => {
         maxPressure: "3 бар",
         gasConsumption: "4.6 м³/ч",
         warranty: "10 лет"
-      },
-      reviews: [
-        { name: "Сергей М.", rating: 5, text: "Управляю через смартфон - очень удобно!" },
-        { name: "Анна Т.", rating: 5, text: "Высокий КПД, экономия газа заметна." }
-      ]
+      }
     },
     {
       id: 5,
@@ -121,13 +109,41 @@ const Index = () => {
         maxPressure: "6 бар",
         gasConsumption: "5.8 м³/ч",
         warranty: "10 лет"
-      },
-      reviews: [
-        { name: "Павел Р.", rating: 5, text: "Для коммерческого объекта - отличный выбор." },
-        { name: "Виктор З.", rating: 4, text: "Мощный и долговечный котёл." }
-      ]
+      }
     }
   ];
+
+  // Загрузка отзывов для котла
+  const loadReviews = async (boilerId: number) => {
+    if (boilerReviews[boilerId] || isLoadingReviews[boilerId]) return;
+    
+    setIsLoadingReviews(prev => ({ ...prev, [boilerId]: true }));
+    
+    try {
+      const response = await fetch(`https://functions.poehali.dev/4859451b-1b12-4edc-976c-05f298453eb7?boiler_id=${boilerId}`);
+      const data = await response.json();
+      
+      if (data.reviews) {
+        setBoilerReviews(prev => ({ ...prev, [boilerId]: data.reviews }));
+      }
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить отзывы",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingReviews(prev => ({ ...prev, [boilerId]: false }));
+    }
+  };
+
+  // Загрузка отзывов при монтировании компонента
+  useEffect(() => {
+    boilers.forEach(boiler => {
+      loadReviews(boiler.id);
+    });
+  }, []);
 
   const addToCart = (boiler: any) => {
     setCartItems(prev => [...prev, boiler]);
@@ -172,7 +188,7 @@ const Index = () => {
     });
   };
   
-  const addReview = (boilerId: number) => {
+  const addReview = async (boilerId: number) => {
     if (!reviewForm.name.trim() || !reviewForm.text.trim()) {
       toast({
         title: "Ошибка",
@@ -182,15 +198,45 @@ const Index = () => {
       return;
     }
     
-    toast({
-      title: "Отзыв добавлен",
-      description: "Спасибо за ваш отзыв!",
-    });
-    
-    setReviewForm({ name: '', rating: 5, text: '' });
+    try {
+      const response = await fetch('https://functions.poehali.dev/4859451b-1b12-4edc-976c-05f298453eb7', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          boiler_id: boilerId,
+          name: reviewForm.name.trim(),
+          email: reviewForm.email.trim() || null,
+          rating: reviewForm.rating,
+          comment: reviewForm.text.trim()
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Отзыв добавлен",
+          description: "Спасибо за ваш отзыв!",
+        });
+        
+        // Перезагружаем отзывы
+        setBoilerReviews(prev => ({ ...prev, [boilerId]: undefined }));
+        loadReviews(boilerId);
+        
+        setReviewForm({ name: '', email: '', rating: 5, text: '' });
+      } else {
+        throw new Error(data.error || 'Ошибка сохранения отзыва');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось сохранить отзыв",
+        variant: "destructive"
+      });
+    }
   };
   
-  const processOrder = () => {
+  const processOrder = async () => {
     if (!orderForm.name.trim() || !orderForm.phone.trim()) {
       toast({
         title: "Ошибка оформления",
@@ -200,16 +246,84 @@ const Index = () => {
       return;
     }
     
-    const totalCost = cartItems.reduce((sum, item) => sum + item.price, 0);
+    try {
+      const response = await fetch('https://functions.poehali.dev/65af9735-d7a0-4c40-94c8-73e079e3f264', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: orderForm.name.trim(),
+          phone: orderForm.phone.trim(),
+          email: orderForm.email.trim() || null,
+          address: orderForm.address.trim() || null,
+          items: cartItems,
+          user_location: userLocation || null
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Заказ оформлен!",
+          description: data.message,
+        });
+        
+        setCartItems([]);
+        setOrderForm({ name: '', phone: '', email: '', address: '' });
+        setActiveSection('home');
+      } else {
+        throw new Error(data.error || 'Ошибка оформления заказа');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Ошибка оформления",
+        description: error.message || "Не удалось оформить заказ",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const sendContactRequest = async () => {
+    if (!contactForm.name.trim() || !contactForm.phone.trim() || !contactForm.message.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Заполните все обязательные поля",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    toast({
-      title: "Заказ оформлен!",
-      description: `Заказ на сумму ${totalCost.toLocaleString()} ₽ принят. Мы свяжемся с вами в течение часа.`,
-    });
-    
-    setCartItems([]);
-    setOrderForm({ name: '', phone: '', email: '', address: '' });
-    setActiveSection('home');
+    try {
+      const response = await fetch('https://functions.poehali.dev/65af9735-d7a0-4c40-94c8-73e079e3f264', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'contact',
+          name: contactForm.name.trim(),
+          phone: contactForm.phone.trim(),
+          email: contactForm.email.trim() || null,
+          message: contactForm.message.trim()
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Заявка отправлена",
+          description: data.message,
+        });
+        setContactForm({ name: '', phone: '', email: '', message: '' });
+      } else {
+        throw new Error(data.error || 'Ошибка отправки заявки');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось отправить заявку",
+        variant: "destructive"
+      });
+    }
   };
 
   const getLocation = () => {
@@ -218,9 +332,10 @@ const Index = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          setShowMap(true);
           toast({
             title: "Геолокация определена",
-            description: `Ваше местоположение: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+            description: "Показываем карту с вашим местоположением и адресом компании",
           });
         },
         (error) => {
@@ -229,8 +344,12 @@ const Index = () => {
             description: "Не удалось определить местоположение",
             variant: "destructive"
           });
+          // Показываем карту с адресом компании без геолокации
+          setShowMap(true);
         }
       );
+    } else {
+      setShowMap(true);
     }
   };
 
@@ -241,12 +360,79 @@ const Index = () => {
   };
 
   const getRecommendedBoilers = () => {
-    if (!calculatedPower) return boilers.slice(0, 2);
+    if (!calculatedPower) return [];
     
-    return boilers.filter(boiler => {
+    const recommended = boilers.filter(boiler => {
       const boilerPower = parseInt(boiler.power);
-      return boilerPower >= calculatedPower && boilerPower <= calculatedPower + 10;
+      return Math.abs(boilerPower - calculatedPower) <= 15;
     });
+    
+    // Сортируем по близости к расчетной мощности
+    return recommended.sort((a, b) => {
+      const aDiff = Math.abs(parseInt(a.power) - calculatedPower);
+      const bDiff = Math.abs(parseInt(b.power) - calculatedPower);
+      return aDiff - bDiff;
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  // Компонент карты
+  const MapComponent = () => {
+    if (!showMap) return null;
+    
+    const companyAddress = "Москва, ул. Промышленная, 15";
+    const companyCoords = "55.7558,37.6176"; // Примерные координаты
+    
+    return (
+      <Dialog open={showMap} onOpenChange={setShowMap}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Карта с адресом компании</DialogTitle>
+            <DialogDescription>
+              Адрес: {companyAddress}
+              {userLocation && (
+                <div className="mt-2">Ваше местоположение: {userLocation}</div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <Icon name="MapPin" size={48} className="mx-auto text-industrial-blue mb-4" />
+              <h3 className="text-lg font-semibold">GASPROJECT</h3>
+              <p className="text-muted-foreground">{companyAddress}</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Телефон: +7 (495) 123-45-67
+              </p>
+              {userLocation && (
+                <div className="mt-4 p-3 bg-blue-50 rounded">
+                  <p className="text-sm font-medium">Ваше местоположение:</p>
+                  <p className="text-sm text-muted-foreground">{userLocation}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              onClick={() => window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(companyAddress)}`, '_blank')}
+              className="bg-industrial-blue hover:bg-industrial-blue/90"
+            >
+              <Icon name="ExternalLink" size={16} className="mr-2" />
+              Открыть в Яндекс.Картах
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
@@ -287,7 +473,7 @@ const Index = () => {
             <div className="flex items-center space-x-4">
               <Button onClick={getLocation} variant="outline" size="sm">
                 <Icon name="MapPin" size={16} className="mr-2" />
-                Геолокация
+                Карта
               </Button>
               <Badge variant="secondary" className="bg-industrial-blue text-white">
                 {cartItems.length} товаров
@@ -462,17 +648,31 @@ const Index = () => {
                       ))}
                     </div>
 
+                    {/* Отзывы из БД */}
                     <div className="space-y-2">
-                      <h5 className="font-medium text-sm">Отзывы покупателей:</h5>
-                      {boiler.reviews.slice(0, 2).map((review, index) => (
+                      <h5 className="font-medium text-sm flex items-center gap-2">
+                        Отзывы покупателей:
+                        {isLoadingReviews[boiler.id] && (
+                          <Icon name="Loader2" size={14} className="animate-spin" />
+                        )}
+                      </h5>
+                      
+                      {boilerReviews[boiler.id]?.slice(0, 2).map((review, index) => (
                         <div key={index} className="bg-industrial-light p-2 rounded text-xs">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium">{review.name}</span>
                             <div className="flex">{renderStars(review.rating)}</div>
                           </div>
-                          <p className="text-muted-foreground">{review.text}</p>
+                          <p className="text-muted-foreground">{review.comment}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDate(review.created_at)}
+                          </p>
                         </div>
                       ))}
+                      
+                      {boilerReviews[boiler.id]?.length === 0 && (
+                        <p className="text-sm text-muted-foreground">Пока нет отзывов</p>
+                      )}
                     </div>
 
                     <div className="flex justify-between items-center">
@@ -527,61 +727,123 @@ const Index = () => {
                       
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="flex-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => loadReviews(boiler.id)}
+                          >
                             <Icon name="MessageSquare" size={14} className="mr-1" />
                             Отзыв
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-lg">
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle>Оставить отзыв о {boiler.name}</DialogTitle>
+                            <DialogTitle>Отзывы о {boiler.name}</DialogTitle>
                             <DialogDescription>
-                              Поделитесь своим мнением о данном котле
+                              Читайте отзывы других покупателей или оставьте свой
                             </DialogDescription>
                           </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <Label htmlFor="reviewName">Ваше имя</Label>
-                              <Input 
-                                id="reviewName"
-                                value={reviewForm.name}
-                                onChange={(e) => setReviewForm({...reviewForm, name: e.target.value})}
-                                placeholder="Введите ваше имя"
-                              />
-                            </div>
-                            <div>
-                              <Label>Оценка</Label>
-                              <div className="flex space-x-1 mt-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <button
-                                    key={star}
-                                    onClick={() => setReviewForm({...reviewForm, rating: star})}
-                                    className="p-1"
-                                  >
-                                    <Icon 
-                                      name="Star" 
-                                      size={20} 
-                                      className={star <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+                          
+                          <Tabs defaultValue="reviews" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                              <TabsTrigger value="reviews">Все отзывы</TabsTrigger>
+                              <TabsTrigger value="add">Оставить отзыв</TabsTrigger>
+                            </TabsList>
+                            
+                            <TabsContent value="reviews" className="space-y-4">
+                              {isLoadingReviews[boiler.id] ? (
+                                <div className="text-center py-8">
+                                  <Icon name="Loader2" size={32} className="animate-spin mx-auto mb-2" />
+                                  <p>Загрузка отзывов...</p>
+                                </div>
+                              ) : boilerReviews[boiler.id]?.length ? (
+                                <div className="space-y-4 max-h-96 overflow-y-auto">
+                                  {boilerReviews[boiler.id].map((review, index) => (
+                                    <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                          <span className="font-semibold">{review.name}</span>
+                                          <div className="flex items-center gap-2">
+                                            <div className="flex">{renderStars(review.rating)}</div>
+                                            <span className="text-sm text-muted-foreground">
+                                              {formatDate(review.created_at)}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <p className="text-muted-foreground">{review.comment}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <Icon name="MessageSquare" size={48} className="mx-auto mb-2 opacity-50" />
+                                  <p>Пока нет отзывов. Станьте первым!</p>
+                                </div>
+                              )}
+                            </TabsContent>
+                            
+                            <TabsContent value="add" className="space-y-4">
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="reviewName">Ваше имя *</Label>
+                                    <Input 
+                                      id="reviewName"
+                                      value={reviewForm.name}
+                                      onChange={(e) => setReviewForm({...reviewForm, name: e.target.value})}
+                                      placeholder="Введите ваше имя"
                                     />
-                                  </button>
-                                ))}
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="reviewEmail">Email (необязательно)</Label>
+                                    <Input 
+                                      id="reviewEmail"
+                                      type="email"
+                                      value={reviewForm.email}
+                                      onChange={(e) => setReviewForm({...reviewForm, email: e.target.value})}
+                                      placeholder="your@email.ru"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label>Оценка</Label>
+                                  <div className="flex space-x-1 mt-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <button
+                                        key={star}
+                                        onClick={() => setReviewForm({...reviewForm, rating: star})}
+                                        className="p-1"
+                                      >
+                                        <Icon 
+                                          name="Star" 
+                                          size={20} 
+                                          className={star <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+                                        />
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label htmlFor="reviewText">Текст отзыва *</Label>
+                                  <Textarea 
+                                    id="reviewText"
+                                    value={reviewForm.text}
+                                    onChange={(e) => setReviewForm({...reviewForm, text: e.target.value})}
+                                    placeholder="Расскажите о вашем опыте использования котла..."
+                                    rows={4}
+                                  />
+                                </div>
+                                <Button 
+                                  onClick={() => addReview(boiler.id)}
+                                  className="w-full bg-industrial-blue hover:bg-industrial-blue/90"
+                                >
+                                  Отправить отзыв
+                                </Button>
                               </div>
-                            </div>
-                            <div>
-                              <Label htmlFor="reviewText">Текст отзыва</Label>
-                              <Textarea 
-                                id="reviewText"
-                                value={reviewForm.text}
-                                onChange={(e) => setReviewForm({...reviewForm, text: e.target.value})}
-                                placeholder="Расскажите о вашем опыте использования"
-                              />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button onClick={() => addReview(boiler.id)}>
-                              Отправить отзыв
-                            </Button>
-                          </DialogFooter>
+                            </TabsContent>
+                          </Tabs>
                         </DialogContent>
                       </Dialog>
                     </div>
@@ -642,9 +904,9 @@ const Index = () => {
                       <SelectValue placeholder="Выберите качество теплоизоляции" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="poor">Плохая теплоизоляция</SelectItem>
-                      <SelectItem value="average">Средняя теплоизоляция</SelectItem>
-                      <SelectItem value="excellent">Отличная теплоизоляция</SelectItem>
+                      <SelectItem value="poor">Плохая теплоизоляция (+50% к мощности)</SelectItem>
+                      <SelectItem value="average">Средняя теплоизоляция (стандартный расчёт)</SelectItem>
+                      <SelectItem value="excellent">Отличная теплоизоляция (-25% к мощности)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -657,33 +919,56 @@ const Index = () => {
                 {calculatedPower && (
                   <>
                     <Separator />
-                    <div className="bg-industrial-light p-4 rounded-lg">
+                    <div className="bg-industrial-light p-6 rounded-lg">
                       <div className="text-center">
-                        <div className="text-3xl font-roboto font-bold text-industrial-blue mb-2">
+                        <div className="text-4xl font-roboto font-bold text-industrial-blue mb-2">
                           {calculatedPower} кВт
                         </div>
-                        <p className="text-muted-foreground">Рекомендуемая мощность</p>
+                        <p className="text-muted-foreground">Рекомендуемая мощность котла</p>
                       </div>
                     </div>
 
                     <div className="space-y-3">
                       <h4 className="font-medium">Подходящие модели:</h4>
-                      <div className="space-y-2">
-                        {getRecommendedBoilers().map((boiler) => (
-                          <div key={boiler.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                            <div>
-                              <span className="font-medium">{boiler.name}</span>
-                              <span className="text-sm text-muted-foreground ml-2">({boiler.power})</span>
-                            </div>
+                      <div className="space-y-3">
+                        {getRecommendedBoilers().length > 0 ? (
+                          getRecommendedBoilers().map((boiler) => (
+                            <Card key={boiler.id} className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <img src={boiler.image} alt={boiler.name} className="w-16 h-16 object-cover rounded" />
+                                  <div>
+                                    <span className="font-semibold">{boiler.name}</span>
+                                    <div className="text-sm text-muted-foreground">
+                                      Мощность: {boiler.power} | КПД: {boiler.efficiency}
+                                    </div>
+                                    <div className="text-lg font-bold text-industrial-blue">
+                                      {boiler.price.toLocaleString()} ₽
+                                    </div>
+                                  </div>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => addToCart(boiler)}
+                                  className="bg-industrial-blue hover:bg-industrial-blue/90"
+                                >
+                                  В корзину
+                                </Button>
+                              </div>
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p>Нет точно подходящих моделей. Рекомендуем обратиться за консультацией.</p>
                             <Button 
-                              size="sm" 
-                              onClick={() => addToCart(boiler)}
-                              className="bg-industrial-blue hover:bg-industrial-blue/90"
+                              className="mt-4" 
+                              onClick={() => setActiveSection('contacts')}
+                              variant="outline"
                             >
-                              В корзину
+                              Получить консультацию
                             </Button>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </>
@@ -744,25 +1029,49 @@ const Index = () => {
                 <CardContent className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Имя</Label>
-                      <Input id="name" placeholder="Ваше имя" />
+                      <Label htmlFor="contactName">Имя *</Label>
+                      <Input 
+                        id="contactName" 
+                        placeholder="Ваше имя"
+                        value={contactForm.name}
+                        onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Телефон</Label>
-                      <Input id="phone" placeholder="+7 (___) ___-__-__" />
+                      <Label htmlFor="contactPhone">Телефон *</Label>
+                      <Input 
+                        id="contactPhone" 
+                        placeholder="+7 (___) ___-__-__"
+                        value={contactForm.phone}
+                        onChange={(e) => setContactForm({...contactForm, phone: e.target.value})}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="your@email.ru" />
+                    <Label htmlFor="contactEmail">Email</Label>
+                    <Input 
+                      id="contactEmail" 
+                      type="email" 
+                      placeholder="your@email.ru"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="message">Сообщение</Label>
-                    <Textarea id="message" placeholder="Расскажите о ваших потребностях..." />
+                    <Label htmlFor="contactMessage">Сообщение *</Label>
+                    <Textarea 
+                      id="contactMessage" 
+                      placeholder="Расскажите о ваших потребностях..."
+                      value={contactForm.message}
+                      onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
+                    />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full bg-industrial-blue hover:bg-industrial-blue/90">
+                  <Button 
+                    className="w-full bg-industrial-blue hover:bg-industrial-blue/90"
+                    onClick={sendContactRequest}
+                  >
                     <Icon name="Send" size={16} className="mr-2" />
                     Отправить заявку
                   </Button>
@@ -981,6 +1290,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Map Component */}
+      <MapComponent />
     </div>
   );
 };
