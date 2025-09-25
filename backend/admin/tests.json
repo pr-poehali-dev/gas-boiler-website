@@ -1,0 +1,35 @@
+{
+  "tests": [
+    {
+      "name": "Get orders (unauthorized)",
+      "method": "GET",
+      "path": "/orders",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Unauthorized access"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get orders (authorized)",
+      "method": "GET",
+      "path": "/orders",
+      "headers": {
+        "X-Admin-Token": "gasproject_admin_2024"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "orders": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "CORS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    }
+  ]
+}

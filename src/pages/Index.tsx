@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import Icon from "@/components/ui/icon";
+import Icon from "@/components/ui/icon";\nimport MobileMenu from "@/components/MobileMenu";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('home');
@@ -24,6 +24,8 @@ const Index = () => {
   const [boilerReviews, setBoilerReviews] = useState<{[key: number]: any[]}>({});
   const [isLoadingReviews, setIsLoadingReviews] = useState<{[key: number]: boolean}>({});
   const [showMap, setShowMap] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentReviewDialog, setCurrentReviewDialog] = useState<number | null>(null);
 
   const boilers = [
     {
@@ -66,7 +68,7 @@ const Index = () => {
       power: "35 кВт",
       efficiency: "97%",
       price: 165000,
-      image: "/img/bf6c52b3-39f3-49f5-a5aa-37cdb7aa907d.jpg",
+      image: "/img/07d82a8a-1aa6-4e3e-bfab-51f154a2e54a.jpg",
       features: ["Мощный", "Двухконтурный", "Цифровое управление"],
       specs: {
         type: "Напольный промышленный",
