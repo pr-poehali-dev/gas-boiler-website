@@ -9,22 +9,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Icon from "@/components/ui/icon";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<string>('');
+  const [calculatedPower, setCalculatedPower] = useState<number | null>(null);
+  const [calcInputs, setCalcInputs] = useState({ area: '', height: '', insulation: '' });
+  const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, text: '' });
+  const [orderForm, setOrderForm] = useState({ name: '', phone: '', email: '', address: '' });
 
   const boilers = [
     {
       id: 1,
-      name: "Gasproject Pro 24",
+      name: "EcoTerm Premium 24",
       power: "24 кВт",
       efficiency: "98%",
       price: 125000,
-      image: "/img/ab027203-f94a-43ff-a8fc-1f2bdb8fc6dd.jpg",
+      image: "/img/78193d65-153c-416e-994c-11d37f1e1062.jpg",
       features: ["Конденсационный", "Модуляция 1:10", "Низкий NOx"],
+      specs: {
+        type: "Настенный конденсационный",
+        dimensions: "750×440×338 мм",
+        weight: "34 кг",
+        maxPressure: "3 бар",
+        gasConsumption: "2.75 м³/ч",
+        warranty: "5 лет"
+      },
       reviews: [
         { name: "Иван П.", rating: 5, text: "Отличный котёл, экономичный и надёжный!" },
         { name: "Мария С.", rating: 5, text: "Работает тихо, простое управление." }
@@ -32,12 +45,20 @@ const Index = () => {
     },
     {
       id: 2,
-      name: "Gasproject Eco 30",
+      name: "ThermoMax Comfort 30",
       power: "30 кВт",
       efficiency: "96%",
       price: 145000,
-      image: "/img/ab027203-f94a-43ff-a8fc-1f2bdb8fc6dd.jpg",
+      image: "/img/e7086ab3-5643-41fd-b4e7-9f56136f0501.jpg",
       features: ["Экологичный", "Автодиагностика", "Защита от замерзания"],
+      specs: {
+        type: "Настенный двухконтурный",
+        dimensions: "800×450×360 мм",
+        weight: "38 кг",
+        maxPressure: "3 бар",
+        gasConsumption: "3.4 м³/ч",
+        warranty: "7 лет"
+      },
       reviews: [
         { name: "Алексей К.", rating: 4, text: "Хороший выбор для дома 150м²." },
         { name: "Елена В.", rating: 5, text: "Быстрый нагрев, удобное управление." }
@@ -45,12 +66,20 @@ const Index = () => {
     },
     {
       id: 3,
-      name: "Gasproject Max 35",
+      name: "PowerHeat Industrial 35",
       power: "35 кВт",
       efficiency: "97%",
       price: 165000,
-      image: "/img/ab027203-f94a-43ff-a8fc-1f2bdb8fc6dd.jpg",
+      image: "/img/bf6c52b3-39f3-49f5-a5aa-37cdb7aa907d.jpg",
       features: ["Мощный", "Двухконтурный", "Цифровое управление"],
+      specs: {
+        type: "Напольный промышленный",
+        dimensions: "850×500×400 мм",
+        weight: "45 кг",
+        maxPressure: "6 бар",
+        gasConsumption: "4.1 м³/ч",
+        warranty: "8 лет"
+      },
       reviews: [
         { name: "Дмитрий Л.", rating: 5, text: "Идеален для большого дома." },
         { name: "Ольга Н.", rating: 4, text: "Качественная сборка, работает стабильно." }
@@ -58,12 +87,20 @@ const Index = () => {
     },
     {
       id: 4,
-      name: "Gasproject Smart 40",
+      name: "SmartBoiler Connect 40",
       power: "40 кВт",
       efficiency: "99%",
       price: 185000,
-      image: "/img/ab027203-f94a-43ff-a8fc-1f2bdb8fc6dd.jpg",
+      image: "/img/7c3ce2be-a4bf-4089-8452-221d0f11015c.jpg",
       features: ["Умное управление", "Wi-Fi модуль", "Каскадное подключение"],
+      specs: {
+        type: "Умный конденсационный",
+        dimensions: "900×480×400 мм",
+        weight: "42 кг",
+        maxPressure: "3 бар",
+        gasConsumption: "4.6 м³/ч",
+        warranty: "10 лет"
+      },
       reviews: [
         { name: "Сергей М.", rating: 5, text: "Управляю через смартфон - очень удобно!" },
         { name: "Анна Т.", rating: 5, text: "Высокий КПД, экономия газа заметна." }
@@ -71,12 +108,20 @@ const Index = () => {
     },
     {
       id: 5,
-      name: "Gasproject Ultra 50",
+      name: "MegaHeat ProMax 50",
       power: "50 кВт",
       efficiency: "98%",
       price: 220000,
-      image: "/img/ab027203-f94a-43ff-a8fc-1f2bdb8fc6dd.jpg",
+      image: "/img/ec3fa291-57f6-478d-957a-2168288c51b8.jpg",
       features: ["Промышленный", "Надёжность", "Гарантия 10 лет"],
+      specs: {
+        type: "Премиум конденсационный",
+        dimensions: "950×520×450 мм",
+        weight: "55 кг",
+        maxPressure: "6 бар",
+        gasConsumption: "5.8 м³/ч",
+        warranty: "10 лет"
+      },
       reviews: [
         { name: "Павел Р.", rating: 5, text: "Для коммерческого объекта - отличный выбор." },
         { name: "Виктор З.", rating: 4, text: "Мощный и долговечный котёл." }
@@ -100,13 +145,71 @@ const Index = () => {
     });
   };
 
-  const calculatePower = (area: number, height: number, insulation: string) => {
+  const calculatePower = () => {
+    const area = parseFloat(calcInputs.area);
+    const height = parseFloat(calcInputs.height);
+    const insulation = calcInputs.insulation;
+    
+    if (!area || !height || !insulation) {
+      toast({
+        title: "Ошибка расчёта",
+        description: "Заполните все поля для расчёта",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     let baseCoeff = 0.04;
     if (insulation === 'poor') baseCoeff = 0.06;
     if (insulation === 'excellent') baseCoeff = 0.03;
     
-    const power = area * height * baseCoeff;
-    return Math.ceil(power);
+    const power = Math.ceil(area * height * baseCoeff);
+    setCalculatedPower(power);
+    
+    toast({
+      title: "Расчёт завершён",
+      description: `Рекомендуемая мощность: ${power} кВт`,
+    });
+  };
+  
+  const addReview = (boilerId: number) => {
+    if (!reviewForm.name.trim() || !reviewForm.text.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Заполните имя и текст отзыва",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Отзыв добавлен",
+      description: "Спасибо за ваш отзыв!",
+    });
+    
+    setReviewForm({ name: '', rating: 5, text: '' });
+  };
+  
+  const processOrder = () => {
+    if (!orderForm.name.trim() || !orderForm.phone.trim()) {
+      toast({
+        title: "Ошибка оформления",
+        description: "Заполните обязательные поля (имя и телефон)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const totalCost = cartItems.reduce((sum, item) => sum + item.price, 0);
+    
+    toast({
+      title: "Заказ оформлен!",
+      description: `Заказ на сумму ${totalCost.toLocaleString()} ₽ принят. Мы свяжемся с вами в течение часа.`,
+    });
+    
+    setCartItems([]);
+    setOrderForm({ name: '', phone: '', email: '', address: '' });
+    setActiveSection('home');
   };
 
   const getLocation = () => {
@@ -135,6 +238,15 @@ const Index = () => {
     return Array(5).fill(0).map((_, i) => (
       <Icon key={i} name={i < rating ? "Star" : "StarHalf"} size={16} className="fill-yellow-400 text-yellow-400" />
     ));
+  };
+
+  const getRecommendedBoilers = () => {
+    if (!calculatedPower) return boilers.slice(0, 2);
+    
+    return boilers.filter(boiler => {
+      const boilerPower = parseInt(boiler.power);
+      return boilerPower >= calculatedPower && boilerPower <= calculatedPower + 10;
+    });
   };
 
   return (
@@ -370,7 +482,7 @@ const Index = () => {
                     </div>
                   </CardContent>
 
-                  <CardFooter>
+                  <CardFooter className="space-y-2">
                     <Button 
                       onClick={() => addToCart(boiler)}
                       className="w-full bg-industrial-blue hover:bg-industrial-blue/90"
@@ -378,6 +490,101 @@ const Index = () => {
                       <Icon name="ShoppingCart" size={16} className="mr-2" />
                       В корзину
                     </Button>
+                    
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Icon name="FileText" size={14} className="mr-1" />
+                            Характеристики
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle>{boiler.name} - Характеристики</DialogTitle>
+                            <DialogDescription>
+                              Подробные технические характеристики котла
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <span className="font-medium">Тип:</span>
+                              <span>{boiler.specs.type}</span>
+                              <span className="font-medium">Размеры:</span>
+                              <span>{boiler.specs.dimensions}</span>
+                              <span className="font-medium">Вес:</span>
+                              <span>{boiler.specs.weight}</span>
+                              <span className="font-medium">Макс. давление:</span>
+                              <span>{boiler.specs.maxPressure}</span>
+                              <span className="font-medium">Расход газа:</span>
+                              <span>{boiler.specs.gasConsumption}</span>
+                              <span className="font-medium">Гарантия:</span>
+                              <span>{boiler.specs.warranty}</span>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Icon name="MessageSquare" size={14} className="mr-1" />
+                            Отзыв
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle>Оставить отзыв о {boiler.name}</DialogTitle>
+                            <DialogDescription>
+                              Поделитесь своим мнением о данном котле
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="reviewName">Ваше имя</Label>
+                              <Input 
+                                id="reviewName"
+                                value={reviewForm.name}
+                                onChange={(e) => setReviewForm({...reviewForm, name: e.target.value})}
+                                placeholder="Введите ваше имя"
+                              />
+                            </div>
+                            <div>
+                              <Label>Оценка</Label>
+                              <div className="flex space-x-1 mt-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <button
+                                    key={star}
+                                    onClick={() => setReviewForm({...reviewForm, rating: star})}
+                                    className="p-1"
+                                  >
+                                    <Icon 
+                                      name="Star" 
+                                      size={20} 
+                                      className={star <= reviewForm.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <Label htmlFor="reviewText">Текст отзыва</Label>
+                              <Textarea 
+                                id="reviewText"
+                                value={reviewForm.text}
+                                onChange={(e) => setReviewForm({...reviewForm, text: e.target.value})}
+                                placeholder="Расскажите о вашем опыте использования"
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button onClick={() => addReview(boiler.id)}>
+                              Отправить отзыв
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </CardFooter>
                 </Card>
               ))}
@@ -408,17 +615,29 @@ const Index = () => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="area">Площадь помещения (м²)</Label>
-                    <Input id="area" type="number" placeholder="150" />
+                    <Input 
+                      id="area" 
+                      type="number" 
+                      placeholder="150"
+                      value={calcInputs.area}
+                      onChange={(e) => setCalcInputs({...calcInputs, area: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="height">Высота потолков (м)</Label>
-                    <Input id="height" type="number" placeholder="2.7" />
+                    <Input 
+                      id="height" 
+                      type="number" 
+                      placeholder="2.7"
+                      value={calcInputs.height}
+                      onChange={(e) => setCalcInputs({...calcInputs, height: e.target.value})}
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Качество теплоизоляции</Label>
-                  <Select>
+                  <Select value={calcInputs.insulation} onValueChange={(value) => setCalcInputs({...calcInputs, insulation: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Выберите качество теплоизоляции" />
                     </SelectTrigger>
@@ -430,37 +649,45 @@ const Index = () => {
                   </Select>
                 </div>
 
-                <Separator />
+                <Button onClick={calculatePower} className="w-full bg-industrial-blue hover:bg-industrial-blue/90">
+                  <Icon name="Calculator" size={16} className="mr-2" />
+                  Рассчитать мощность
+                </Button>
 
-                <div className="bg-industrial-light p-4 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-3xl font-roboto font-bold text-industrial-blue mb-2">
-                      24 кВт
-                    </div>
-                    <p className="text-muted-foreground">Рекомендуемая мощность</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium">Подходящие модели:</h4>
-                  <div className="space-y-2">
-                    {boilers.slice(0, 2).map((boiler) => (
-                      <div key={boiler.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                        <div>
-                          <span className="font-medium">{boiler.name}</span>
-                          <span className="text-sm text-muted-foreground ml-2">({boiler.power})</span>
+                {calculatedPower && (
+                  <>
+                    <Separator />
+                    <div className="bg-industrial-light p-4 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-3xl font-roboto font-bold text-industrial-blue mb-2">
+                          {calculatedPower} кВт
                         </div>
-                        <Button 
-                          size="sm" 
-                          onClick={() => addToCart(boiler)}
-                          className="bg-industrial-blue hover:bg-industrial-blue/90"
-                        >
-                          В корзину
-                        </Button>
+                        <p className="text-muted-foreground">Рекомендуемая мощность</p>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Подходящие модели:</h4>
+                      <div className="space-y-2">
+                        {getRecommendedBoilers().map((boiler) => (
+                          <div key={boiler.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                            <div>
+                              <span className="font-medium">{boiler.name}</span>
+                              <span className="text-sm text-muted-foreground ml-2">({boiler.power})</span>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              onClick={() => addToCart(boiler)}
+                              className="bg-industrial-blue hover:bg-industrial-blue/90"
+                            >
+                              В корзину
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </section>
@@ -617,10 +844,84 @@ const Index = () => {
                   >
                     Очистить корзину
                   </Button>
-                  <Button className="flex-1 bg-industrial-blue hover:bg-industrial-blue/90">
-                    <Icon name="CreditCard" size={16} className="mr-2" />
-                    Оформить заказ
-                  </Button>
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="flex-1 bg-industrial-blue hover:bg-industrial-blue/90">
+                        <Icon name="CreditCard" size={16} className="mr-2" />
+                        Оформить заказ
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Оформление заказа</DialogTitle>
+                        <DialogDescription>
+                          Заполните контактную информацию для оформления заказа
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="orderName">Имя *</Label>
+                            <Input 
+                              id="orderName"
+                              value={orderForm.name}
+                              onChange={(e) => setOrderForm({...orderForm, name: e.target.value})}
+                              placeholder="Ваше имя"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="orderPhone">Телефон *</Label>
+                            <Input 
+                              id="orderPhone"
+                              value={orderForm.phone}
+                              onChange={(e) => setOrderForm({...orderForm, phone: e.target.value})}
+                              placeholder="+7 (___) ___-__-__"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="orderEmail">Email</Label>
+                          <Input 
+                            id="orderEmail"
+                            type="email"
+                            value={orderForm.email}
+                            onChange={(e) => setOrderForm({...orderForm, email: e.target.value})}
+                            placeholder="your@email.ru"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="orderAddress">Адрес доставки</Label>
+                          <Textarea 
+                            id="orderAddress"
+                            value={orderForm.address}
+                            onChange={(e) => setOrderForm({...orderForm, address: e.target.value})}
+                            placeholder="Укажите адрес для доставки котла"
+                          />
+                        </div>
+                        
+                        <div className="bg-industrial-light p-4 rounded-lg">
+                          <h4 className="font-medium mb-2">Ваш заказ:</h4>
+                          {cartItems.map((item, index) => (
+                            <div key={index} className="flex justify-between text-sm">
+                              <span>{item.name}</span>
+                              <span>{item.price.toLocaleString()} ₽</span>
+                            </div>
+                          ))}
+                          <Separator className="my-2" />
+                          <div className="flex justify-between font-semibold">
+                            <span>Итого:</span>
+                            <span>{cartItems.reduce((sum, item) => sum + item.price, 0).toLocaleString()} ₽</span>
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={processOrder} className="w-full">
+                          Подтвердить заказ
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             )}
