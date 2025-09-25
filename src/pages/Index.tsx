@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import Icon from "@/components/ui/icon";\nimport MobileMenu from "@/components/MobileMenu";
+import Icon from "@/components/ui/icon";
+import MobileMenu from "@/components/MobileMenu";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('home');
@@ -25,7 +26,6 @@ const Index = () => {
   const [isLoadingReviews, setIsLoadingReviews] = useState<{[key: number]: boolean}>({});
   const [showMap, setShowMap] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentReviewDialog, setCurrentReviewDialog] = useState<number | null>(null);
 
   const boilers = [
     {
@@ -203,15 +203,22 @@ const Index = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/4859451b-1b12-4edc-976c-05f298453eb7', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           boiler_id: boilerId,
           name: reviewForm.name.trim(),
-          email: reviewForm.email.trim() || null,
+          email: reviewForm.email.trim() || '',
           rating: reviewForm.rating,
           comment: reviewForm.text.trim()
         })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       
       const data = await response.json();
       
@@ -222,17 +229,22 @@ const Index = () => {
         });
         
         // Перезагружаем отзывы
-        setBoilerReviews(prev => ({ ...prev, [boilerId]: undefined }));
-        loadReviews(boilerId);
+        setBoilerReviews(prev => {
+          const updated = { ...prev };
+          delete updated[boilerId];
+          return updated;
+        });
+        await loadReviews(boilerId);
         
         setReviewForm({ name: '', email: '', rating: 5, text: '' });
       } else {
         throw new Error(data.error || 'Ошибка сохранения отзыва');
       }
     } catch (error: any) {
+      console.error('Review submission error:', error);
       toast({
         title: "Ошибка",
-        description: error.message || "Не удалось сохранить отзыв",
+        description: error.message || "Не удалось сохранить отзыв. Попробуйте еще раз.",
         variant: "destructive"
       });
     }
@@ -391,7 +403,6 @@ const Index = () => {
     if (!showMap) return null;
     
     const companyAddress = "Москва, ул. Промышленная, 15";
-    const companyCoords = "55.7558,37.6176"; // Примерные координаты
     
     return (
       <Dialog open={showMap} onOpenChange={setShowMap}>
@@ -448,6 +459,7 @@ const Index = () => {
               <h1 className="text-3xl font-roboto font-bold text-industrial-dark">GASPROJECT</h1>
             </div>
             
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-6">
               {[
                 { id: 'home', label: 'Главная', icon: 'Home' },
@@ -473,17 +485,35 @@ const Index = () => {
             </nav>
 
             <div className="flex items-center space-x-4">
-              <Button onClick={getLocation} variant="outline" size="sm">
+              <Button onClick={getLocation} variant="outline" size="sm" className="hidden md:flex">
                 <Icon name="MapPin" size={16} className="mr-2" />
                 Карта
               </Button>
-              <Badge variant="secondary" className="bg-industrial-blue text-white">
+              <Badge variant="secondary" className="bg-industrial-blue text-white hidden md:flex">
                 {cartItems.length} товаров
               </Badge>
+              
+              {/* Mobile Menu Button */}
+              <button 
+                className="md:hidden p-2 rounded-lg hover:bg-industrial-light"
+                onClick={() => setIsMobileMenuOpen(true)}
+              >
+                <Icon name="Menu" size={24} className="text-industrial-dark" />
+              </button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        cartItemsCount={cartItems.length}
+        onLocationClick={getLocation}
+      />
 
       <main className="container mx-auto px-4 py-8">
         {/* Home Section */}
